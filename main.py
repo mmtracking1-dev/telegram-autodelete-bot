@@ -60,17 +60,13 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     if not BOT_TOKEN:
-        raise RuntimeError("BOT_TOKEN nije postavljen u .env")
+        raise RuntimeError("BOT_TOKEN nije postavljen!")
 
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("status", status_cmd))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), schedule_delete))
 
-    log.info("Bot START (polling).")
-    try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        asyncio.set_event_loop(asyncio.new_event_loop())
+    log.info("Bot STARTED (polling).")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
