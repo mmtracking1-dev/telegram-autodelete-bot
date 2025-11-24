@@ -9,22 +9,20 @@ from telegram.ext import (
     filters,
 )
 
+# Log format
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     level=logging.INFO,
 )
 logger = logging.getLogger("autodelete")
 
-# 🔥 Koliko sekundi poruka sme da stoji (promeni po želji)
+# Konfiguracija kroz env var
 DELETE_AFTER_SECONDS = int(os.getenv("DELETE_AFTER_SECONDS", "60"))
-
-# 🔥 Bot Token
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 
 async def schedule_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Zakazuje brisanje poruke nakon DELETE_AFTER_SECONDS sekundi."""
-
+    """Za svaku poruku (bez komande) zakaži brisanje posle DELETE_AFTER_SECONDS sekundi."""
     if context.job_queue is None:
         logger.error("JobQueue nije inicijalizovan!")
         return
@@ -48,7 +46,7 @@ async def schedule_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def delete_message_job(context: ContextTypes.DEFAULT_TYPE):
-    """Briše poruku koju smo zakazali."""
+    """Handler koji zapravo briše poruku."""
     job = context.job
     chat_id = job.chat_id
     message_id = job.data["message_id"]
@@ -63,6 +61,7 @@ async def delete_message_job(context: ContextTypes.DEFAULT_TYPE):
 async def main():
     logger.info("Starting bot...")
 
+    # PTB v20 – NEMA Updater-a. Sve ide preko ApplicationBuilder-a.
     application = (
         ApplicationBuilder()
         .token(BOT_TOKEN)
@@ -70,13 +69,12 @@ async def main():
         .build()
     )
 
+    # Hvatamo sve poruke koje NISU komande
     application.add_handler(
-        MessageHandler(
-            filters.ALL & ~filters.COMMAND,
-            schedule_delete,
-        )
+        MessageHandler(filters.ALL & ~filters.COMMAND, schedule_delete)
     )
 
+    # Pokretanje long-polling petlje (drži Render instancu „živom“)
     await application.run_polling(close_loop=False)
 
 
